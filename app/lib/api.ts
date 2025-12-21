@@ -1,4 +1,4 @@
-export const WEB_APP_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL'; // TODO: Replace with actual URL
+export const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby5_UsCuFjJE6WGy4KhQxT6vXh3V9oy7HdOtPgbIGy9DfvqEk22_g7lSHk7n9phj0oRuA/exec'; // TODO: Replace with actual URL
 
 export interface CertificateData {
   name: string;
@@ -21,7 +21,7 @@ export interface ApiResponse {
 export async function uploadCertificate(data: CertificateData) {
   const payload = encodeURIComponent(JSON.stringify(data));
   const url = `${WEB_APP_URL}?mode=upload&payload=${payload}`;
-  
+
   try {
     const res = await fetch(url, { method: 'GET' });
     const json = await res.json();
@@ -34,7 +34,7 @@ export async function uploadCertificate(data: CertificateData) {
 
 export async function verifyCertificate(id: string) {
   const url = `${WEB_APP_URL}?id=${id}`;
-  
+
   try {
     const res = await fetch(url, { method: 'GET' });
     const json = await res.json();
