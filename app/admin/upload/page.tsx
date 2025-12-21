@@ -38,7 +38,7 @@ export default function AdminUploadPage() {
                 for (let i = 0; i < rows.length; i++) {
                     const row = rows[i];
                     // Basic validation
-                    if (!row.name || !row.issue_date || !row.issued_for) {
+                    if (!row.email || !row.name || !row.issue_date || !row.issued_for) {
                         setLogs(prev => [...prev, `Row ${i + 1}: Skipped (Missing data)`]);
                         failCount++;
                         continue;
@@ -95,7 +95,7 @@ export default function AdminUploadPage() {
                             Upload
                         </button>
                     </div>
-                    <p className="mt-2 text-xs text-gray-500">Headers required: name, issue_date, issued_for</p>
+                    <p className="mt-2 text-xs text-gray-500">Headers required: email, name, issue_date, issued_for</p>
                 </div>
 
                 {uploading && (

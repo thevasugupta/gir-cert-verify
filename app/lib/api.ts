@@ -1,6 +1,7 @@
 export const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby5_UsCuFjJE6WGy4KhQxT6vXh3V9oy7HdOtPgbIGy9DfvqEk22_g7lSHk7n9phj0oRuA/exec'; // TODO: Replace with actual URL
 
 export interface CertificateData {
+  email: string;
   name: string;
   issue_date: string;
   issued_for: string;
