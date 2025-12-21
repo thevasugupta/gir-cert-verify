@@ -1,15 +1,55 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Papa from 'papaparse';
 import { uploadCertificate, CertificateData } from '@/app/lib/api';
-import { Upload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, Loader2, LogOut } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function AdminUploadPage() {
     const [file, setFile] = useState<File | null>(null);
+    const [issueDate, setIssueDate] = useState('');
+    const [certificateTitle, setCertificateTitle] = useState('');
     const [uploading, setUploading] = useState(false);
     const [logs, setLogs] = useState<string[]>([]);
     const [progress, setProgress] = useState(0);
+    const router = useRouter();
+
+    const handleLogout = useCallback(async () => {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        router.push('/admin/login');
+    }, [router]);
+
+    // Auto-logout on inactivity
+    useEffect(() => {
+        let timeout: NodeJS.Timeout;
+
+        const resetTimer = () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                handleLogout();
+            }, 5 * 60 * 1000); // 5 minutes
+        };
+
+        // Events to track activity
+        const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+
+        // Initial timer
+        resetTimer();
+
+        // Add event listeners
+        events.forEach(event => {
+            window.addEventListener(event, resetTimer);
+        });
+
+        // Cleanup
+        return () => {
+            clearTimeout(timeout);
+            events.forEach(event => {
+                window.removeEventListener(event, resetTimer);
+            });
+        };
+    }, [handleLogout]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -20,7 +60,7 @@ export default function AdminUploadPage() {
     };
 
     const handleUpload = async () => {
-        if (!file) return;
+        if (!file || !issueDate || !certificateTitle) return;
 
         setUploading(true);
         setLogs(prev => [...prev, 'Parsing CSV...']);
@@ -38,16 +78,19 @@ export default function AdminUploadPage() {
                 for (let i = 0; i < rows.length; i++) {
                     const row = rows[i];
                     // Basic validation
-                    if (!row.email || !row.name || !row.issue_date || !row.issued_for) {
+                    if (!row.email || !row.name) {
                         setLogs(prev => [...prev, `Row ${i + 1}: Skipped (Missing data)`]);
                         failCount++;
                         continue;
                     }
 
+                    // Apply global values
+                    row.issue_date = issueDate;
+                    row.certificate_title = certificateTitle;
+
                     const res = await uploadCertificate(row);
                     if (res.status === 'success') {
                         successCount++;
-                        // setLogs(prev => [...prev, `Row ${i + 1}: Uploaded (${row.name})`]); // Too verbose for many rows
                     } else {
                         failCount++;
                         setLogs(prev => [...prev, `Row ${i + 1}: Failed - ${res.message}`]);
@@ -58,6 +101,20 @@ export default function AdminUploadPage() {
 
                 setLogs(prev => [...prev, `Upload complete. Success: ${successCount}, Failed: ${failCount}`]);
                 setUploading(false);
+
+                // Reset form on success
+                if (successCount > 0) {
+                    setTimeout(() => {
+                        setFile(null);
+                        setIssueDate('');
+                        setCertificateTitle('');
+                        // Logs are kept as requested
+                        setProgress(0);
+                        // Reset file input manually if needed
+                        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+                        if (fileInput) fileInput.value = '';
+                    }, 2000);
+                }
             },
             error: (error) => {
                 setLogs(prev => [...prev, `CSV Error: ${error.message}`]);
@@ -66,36 +123,71 @@ export default function AdminUploadPage() {
         });
     };
 
+    const today = new Date().toISOString().split('T')[0];
+
     return (
         <div className="min-h-screen bg-gray-50 p-8">
-            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-6">
-                <h1 className="text-2xl font-bold mb-6 text-gray-800">Admin Certificate Upload</h1>
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-6 relative">
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-2xl font-bold text-gray-800">Admin Certificate Upload</h1>
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                    </button>
+                </div>
 
-                <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
-                    <div className="flex items-center gap-4">
+                <div className="mb-6 space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Certificate Title</label>
                         <input
-                            type="file"
-                            accept=".csv"
-                            onChange={handleFileChange}
-                            className="block w-full text-sm text-gray-500
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-full file:border-0
-                file:text-sm file:font-semibold
-                file:bg-blue-50 file:text-blue-700
-                hover:file:bg-blue-100"
+                            type="text"
+                            value={certificateTitle}
+                            onChange={(e) => setCertificateTitle(e.target.value)}
+                            placeholder="e.g. Advanced React Certification"
+                            className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-black"
                         />
-                        <button
-                            onClick={handleUpload}
-                            disabled={!file || uploading}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-white transition-colors
-                ${!file || uploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
-                        >
-                            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                            Upload
-                        </button>
                     </div>
-                    <p className="mt-2 text-xs text-gray-500">Headers required: email, name, issue_date, issued_for</p>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Issue Date</label>
+                        <input
+                            type="date"
+                            max={today}
+                            value={issueDate}
+                            onChange={(e) => setIssueDate(e.target.value)}
+                            className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-black"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
+                        <div className="flex items-center gap-4">
+                            <input
+                                type="file"
+                                accept=".csv"
+                                onChange={handleFileChange}
+                                className="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+                            />
+                            <button
+                                onClick={handleUpload}
+                                disabled={!file || !issueDate || !certificateTitle || uploading}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-white transition-colors
+                    ${!file || !issueDate || !certificateTitle || uploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                            >
+                                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                Upload
+                            </button>
+                        </div>
+                        <p className="mt-2 text-xs text-gray-500">Headers required: email, name</p>
+                    </div>
                 </div>
 
                 {uploading && (

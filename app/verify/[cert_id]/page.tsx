@@ -76,7 +76,7 @@ export default function VerifyPage() {
                             <label className="text-sm font-medium text-gray-500 uppercase tracking-wider">Issued For</label>
                             <div className="mt-1 flex items-center gap-3">
                                 <FileText className="w-5 h-5 text-gray-400" />
-                                <span className="text-lg text-gray-900">{data.issued_for}</span>
+                                <span className="text-lg text-gray-900">{data.certificate_title}</span>
                             </div>
                         </div>
 

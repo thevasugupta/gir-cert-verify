@@ -4,7 +4,7 @@ export interface CertificateData {
   email: string;
   name: string;
   issue_date: string;
-  issued_for: string;
+  certificate_title: string;
 }
 
 export interface Certificate extends CertificateData {
