@@ -84,7 +84,13 @@ export default function VerifyPage() {
                             <label className="text-sm font-medium text-gray-500 uppercase tracking-wider">Issue Date</label>
                             <div className="mt-1 flex items-center gap-3">
                                 <Calendar className="w-5 h-5 text-gray-400" />
-                                <span className="text-lg text-gray-900">{data.issue_date}</span>
+                                <span className="text-lg text-gray-900">
+                                    {new Date(data.issue_date).toLocaleDateString('en-GB', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric'
+                                    })}
+                                </span>
                             </div>
                         </div>
 
