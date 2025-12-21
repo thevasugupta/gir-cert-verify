@@ -7,7 +7,7 @@ export async function POST(request: Request) {
 
     // Simple environment variable check
     // In a real app, use a more secure method
-    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Kookie!@";
 
     if (password === ADMIN_PASSWORD) {
         // Set a cookie
