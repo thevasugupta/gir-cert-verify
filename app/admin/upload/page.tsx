@@ -2,14 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Papa from 'papaparse';
-import { uploadCertificate, CertificateData } from '@/app/lib/api';
+import { uploadCertificate, uploadTemplate, CertificateData } from '@/app/lib/api';
 import { Upload, Loader2, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function AdminUploadPage() {
     const [file, setFile] = useState<File | null>(null);
+    const [templateFile, setTemplateFile] = useState<File | null>(null);
     const [issueDate, setIssueDate] = useState('');
     const [certificateTitle, setCertificateTitle] = useState('');
+    const [eventName, setEventName] = useState('');
     const [uploading, setUploading] = useState(false);
     const [logs, setLogs] = useState<string[]>([]);
     const [progress, setProgress] = useState(0);
@@ -59,68 +61,98 @@ export default function AdminUploadPage() {
         }
     };
 
+    const handleTemplateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setTemplateFile(e.target.files[0]);
+        }
+    };
+
     const handleUpload = async () => {
-        if (!file || !issueDate || !certificateTitle) return;
+        if (!file || !issueDate || !certificateTitle || !templateFile || !eventName) return;
 
         setUploading(true);
-        setLogs(prev => [...prev, 'Parsing CSV...']);
+        setLogs(prev => [...prev, 'Starting upload process...']);
 
-        Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: async (results) => {
-                const rows = results.data as CertificateData[];
-                setLogs(prev => [...prev, `Found ${rows.length} rows. Starting upload...`]);
+        // 1. Upload Template
+        setLogs(prev => [...prev, 'Uploading template...']);
+        try {
+            const templateRes = await uploadTemplate(templateFile, eventName);
 
-                let successCount = 0;
-                let failCount = 0;
-
-                for (let i = 0; i < rows.length; i++) {
-                    const row = rows[i];
-                    // Basic validation
-                    if (!row.email || !row.name) {
-                        setLogs(prev => [...prev, `Row ${i + 1}: Skipped (Missing data)`]);
-                        failCount++;
-                        continue;
-                    }
-
-                    // Apply global values
-                    row.issue_date = issueDate;
-                    row.certificate_title = certificateTitle;
-
-                    const res = await uploadCertificate(row);
-                    if (res.status === 'success') {
-                        successCount++;
-                    } else {
-                        failCount++;
-                        setLogs(prev => [...prev, `Row ${i + 1}: Failed - ${res.message}`]);
-                    }
-
-                    setProgress(Math.round(((i + 1) / rows.length) * 100));
-                }
-
-                setLogs(prev => [...prev, `Upload complete. Success: ${successCount}, Failed: ${failCount}`]);
-                setUploading(false);
-
-                // Reset form on success
-                if (successCount > 0) {
-                    setTimeout(() => {
-                        setFile(null);
-                        setIssueDate('');
-                        setCertificateTitle('');
-                        // Logs are kept as requested
-                        setProgress(0);
-                        // Reset file input manually if needed
-                        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-                        if (fileInput) fileInput.value = '';
-                    }, 2000);
-                }
-            },
-            error: (error) => {
-                setLogs(prev => [...prev, `CSV Error: ${error.message}`]);
-                setUploading(false);
+            if (templateRes.status !== 'success' || !templateRes.template_drive_id || !templateRes.output_folder_id) {
+                throw new Error(templateRes.message || 'Template upload failed');
             }
-        });
+
+            const templateId = templateRes.template_drive_id;
+            const folderId = templateRes.output_folder_id;
+            setLogs(prev => [...prev, 'Template uploaded successfully.']);
+
+            // 2. Parse CSV
+            setLogs(prev => [...prev, 'Parsing CSV...']);
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: async (results) => {
+                    const rows = results.data as CertificateData[];
+                    setLogs(prev => [...prev, `Found ${rows.length} rows. Starting certificate data upload...`]);
+
+                    let successCount = 0;
+                    let failCount = 0;
+
+                    for (let i = 0; i < rows.length; i++) {
+                        const row = rows[i];
+                        // Basic validation
+                        if (!row.email || !row.name) {
+                            setLogs(prev => [...prev, `Row ${i + 1}: Skipped (Missing data)`]);
+                            failCount++;
+                            continue;
+                        }
+
+                        // Apply global values
+                        row.issue_date = issueDate;
+                        row.certificate_title = certificateTitle;
+                        row.template_drive_id = templateId;
+                        row.output_folder_id = folderId;
+
+                        const res = await uploadCertificate(row);
+                        if (res.status === 'success') {
+                            successCount++;
+                        } else {
+                            failCount++;
+                            setLogs(prev => [...prev, `Row ${i + 1}: Failed - ${res.message}`]);
+                        }
+
+                        setProgress(Math.round(((i + 1) / rows.length) * 100));
+                    }
+
+                    setLogs(prev => [...prev, `Upload complete. Success: ${successCount}, Failed: ${failCount}`]);
+                    setUploading(false);
+
+                    // Reset form on success
+                    if (successCount > 0) {
+                        setTimeout(() => {
+                            setFile(null);
+                            setTemplateFile(null);
+                            setIssueDate('');
+                            setCertificateTitle('');
+                            setEventName('');
+                            // Logs are kept as requested
+                            setProgress(0);
+                            // Reset file inputs manually
+                            const fileInputs = document.querySelectorAll('input[type="file"]');
+                            fileInputs.forEach(input => (input as HTMLInputElement).value = '');
+                        }, 2000);
+                    }
+                },
+                error: (error) => {
+                    setLogs(prev => [...prev, `CSV Error: ${error.message}`]);
+                    setUploading(false);
+                }
+            });
+
+        } catch (error: any) {
+            setLogs(prev => [...prev, `Error: ${error.message}`]);
+            setUploading(false);
+        }
     };
 
     const today = new Date().toISOString().split('T')[0];
@@ -140,6 +172,17 @@ export default function AdminUploadPage() {
                 </div>
 
                 <div className="mb-6 space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Event Name</label>
+                        <input
+                            type="text"
+                            value={eventName}
+                            onChange={(e) => setEventName(e.target.value)}
+                            placeholder="e.g. React Summit 2024"
+                            className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-black"
+                        />
+                    </div>
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Certificate Title</label>
                         <input
@@ -163,6 +206,21 @@ export default function AdminUploadPage() {
                     </div>
 
                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Certificate Template (Image)</label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleTemplateChange}
+                            className="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+                        />
+                    </div>
+
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
                         <div className="flex items-center gap-4">
                             <input
@@ -178,9 +236,9 @@ export default function AdminUploadPage() {
                             />
                             <button
                                 onClick={handleUpload}
-                                disabled={!file || !issueDate || !certificateTitle || uploading}
+                                disabled={!file || !issueDate || !certificateTitle || !templateFile || !eventName || uploading}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-white transition-colors
-                    ${!file || !issueDate || !certificateTitle || uploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                    ${!file || !issueDate || !certificateTitle || !templateFile || !eventName || uploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
                             >
                                 {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                                 Upload

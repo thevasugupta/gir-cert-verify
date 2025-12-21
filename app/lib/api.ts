@@ -5,6 +5,8 @@ export interface CertificateData {
   name: string;
   issue_date: string;
   certificate_title: string;
+  template_drive_id?: string;
+  output_folder_id?: string;
 }
 
 export interface Certificate extends CertificateData {
@@ -17,6 +19,36 @@ export interface ApiResponse {
   message?: string;
   data?: Certificate;
   uploaded?: any[];
+  template_drive_id?: string;
+  output_folder_id?: string;
+}
+
+export async function uploadTemplate(file: File, eventName: string) {
+  return new Promise<ApiResponse>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = async () => {
+      const base64 = (reader.result as string).split(',')[1];
+      const payload = {
+        mode: 'upload_template',
+        image_data: base64,
+        event_name: eventName
+      };
+
+      try {
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        resolve(json as ApiResponse);
+      } catch (error) {
+        console.error('Template upload error:', error);
+        resolve({ status: 'error', message: 'Network error' } as ApiResponse);
+      }
+    };
+    reader.onerror = (error) => reject(error);
+  });
 }
 
 export async function uploadCertificate(data: CertificateData) {
