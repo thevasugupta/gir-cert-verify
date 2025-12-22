@@ -11,6 +11,9 @@ export interface CertificateData {
   name_size?: number;
   name_color?: string;
   name_y_pos?: number;
+  name_x_pos?: number;
+  qr_x_pos?: number;
+  qr_y_pos?: number;
 }
 
 export interface Certificate extends CertificateData {

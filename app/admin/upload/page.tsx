@@ -17,6 +17,11 @@ export default function AdminUploadPage() {
     const [nameSize, setNameSize] = useState(100);
     const [nameColor, setNameColor] = useState('#000000');
     const [nameYPos, setNameYPos] = useState(9.0); // Default 9cm
+    const [nameXPos, setNameXPos] = useState(14.85); // Default Center (29.7 / 2)
+
+    // QR Positioning State
+    const [qrXPos, setQrXPos] = useState(1.0);
+    const [qrYPos, setQrYPos] = useState(17.5);
 
     const [uploading, setUploading] = useState(false);
     const [logs, setLogs] = useState<string[]>([]);
@@ -82,6 +87,9 @@ export default function AdminUploadPage() {
         setNameSize(100);
         setNameColor('#000000');
         setNameYPos(9.0);
+        setNameXPos(14.85);
+        setQrXPos(1.0);
+        setQrYPos(17.5);
         setLogs([]);
         setProgress(0);
 
@@ -142,6 +150,9 @@ export default function AdminUploadPage() {
                         row.name_size = nameSize;
                         row.name_color = nameColor;
                         row.name_y_pos = nameYPos;
+                        row.name_x_pos = nameXPos;
+                        row.qr_x_pos = qrXPos;
+                        row.qr_y_pos = qrYPos;
 
                         const res = await uploadCertificate(row);
                         if (res.status === 'success') {
@@ -222,66 +233,108 @@ export default function AdminUploadPage() {
                     </div>
 
                     {/* Formatting Options */}
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <h3 className="text-sm font-semibold text-gray-700 mb-3">Name Formatting</h3>
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Font Family</label>
-                                <select
-                                    value={nameFont}
-                                    onChange={(e) => setNameFont(e.target.value)}
-                                    className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
-                                >
-                                    <option value="Quintessential">Quintessential</option>
-                                    <option value="Meie Script">Meie Script</option>
-                                    <option value="Luxurious Script">Luxurious Script</option>
-                                    <option value="Italianno">Italianno</option>
-                                    <option value="Island Moments">Island Moments</option>
-                                    <option value="Felipa">Felipa</option>
-                                    <option value="Moon Dance">Moon Dance</option>
-                                    <option value="Bilbo Swash Caps">Bilbo Swash Caps</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Font Size</label>
-                                <input
-                                    type="number"
-                                    value={nameSize}
-                                    onChange={(e) => setNameSize(Number(e.target.value))}
-                                    className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Color</label>
-                                <div className="flex items-center gap-2">
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-4">
+
+                        {/* Name Layout */}
+                        <div>
+                            <h3 className="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">Name Layout</h3>
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Font Family</label>
+                                    <select
+                                        value={nameFont}
+                                        onChange={(e) => setNameFont(e.target.value)}
+                                        className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
+                                    >
+                                        <option value="Quintessential">Quintessential</option>
+                                        <option value="Meie Script">Meie Script</option>
+                                        <option value="Luxurious Script">Luxurious Script</option>
+                                        <option value="Italianno">Italianno</option>
+                                        <option value="Island Moments">Island Moments</option>
+                                        <option value="Felipa">Felipa</option>
+                                        <option value="Moon Dance">Moon Dance</option>
+                                        <option value="Bilbo Swash Caps">Bilbo Swash Caps</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Font Size</label>
                                     <input
-                                        type="color"
-                                        value={nameColor}
-                                        onChange={(e) => setNameColor(e.target.value)}
-                                        className="h-10 w-10 rounded cursor-pointer border-0 p-0"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={nameColor}
-                                        onChange={(e) => setNameColor(e.target.value)}
-                                        className="block w-full px-2 h-10 text-xs font-mono border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black uppercase"
-                                        placeholder="#000000"
+                                        type="number"
+                                        value={nameSize}
+                                        onChange={(e) => setNameSize(Number(e.target.value))}
+                                        className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
                                     />
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Y-Axis Position (cm)</label>
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    value={nameYPos}
-                                    onChange={(e) => setNameYPos(Number(e.target.value))}
-                                    className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
-                                />
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Color</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="color"
+                                            value={nameColor}
+                                            onChange={(e) => setNameColor(e.target.value)}
+                                            className="h-10 w-10 rounded cursor-pointer border-0 p-0"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={nameColor}
+                                            onChange={(e) => setNameColor(e.target.value)}
+                                            className="block w-full px-2 h-10 text-xs font-mono border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black uppercase"
+                                            placeholder="#000000"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">X-Axis (cm)</label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={nameXPos}
+                                        onChange={(e) => setNameXPos(Number(e.target.value))}
+                                        className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Y-Axis (cm)</label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={nameYPos}
+                                        onChange={(e) => setNameYPos(Number(e.target.value))}
+                                        className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                                    />
+                                </div>
                             </div>
                         </div>
+
+                        {/* QR Layout */}
+                        <div>
+                            <h3 className="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">QR Code Layout</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">X-Axis (cm)</label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={qrXPos}
+                                        onChange={(e) => setQrXPos(Number(e.target.value))}
+                                        className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Y-Axis (cm)</label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={qrYPos}
+                                        onChange={(e) => setQrYPos(Number(e.target.value))}
+                                        className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
