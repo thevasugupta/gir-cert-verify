@@ -23,6 +23,10 @@ export default function AdminUploadPage() {
     const [qrXPos, setQrXPos] = useState(1.0);
     const [qrYPos, setQrYPos] = useState(17.5);
 
+    // Email State
+    const [emailSubject, setEmailSubject] = useState('Your Certificate: {title}');
+    const [emailBody, setEmailBody] = useState('Dear {name},\n\nPlease find your certificate attached.\n\nVerify at: {verify_url}');
+
     const [uploading, setUploading] = useState(false);
     const [logs, setLogs] = useState<string[]>([]);
     const [progress, setProgress] = useState(0);
@@ -90,6 +94,8 @@ export default function AdminUploadPage() {
         setNameXPos(14.85);
         setQrXPos(1.0);
         setQrYPos(17.5);
+        setEmailSubject('Your Certificate: {title}');
+        setEmailBody('Dear {name},\n\nPlease find your certificate attached.\n\nVerify at: {verify_url}');
         setLogs([]);
         setProgress(0);
 
@@ -153,6 +159,10 @@ export default function AdminUploadPage() {
                         row.name_x_pos = nameXPos;
                         row.qr_x_pos = qrXPos;
                         row.qr_y_pos = qrYPos;
+
+                        // Apply email config
+                        row.email_subject = emailSubject;
+                        row.email_body = emailBody;
 
                         const res = await uploadCertificate(row);
                         if (res.status === 'success') {
@@ -335,6 +345,36 @@ export default function AdminUploadPage() {
                             </div>
                         </div>
 
+                    </div>
+                </div>
+
+                {/* Email Customization */}
+                <div className="mb-6">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Email Customization</h3>
+                    <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Subject</label>
+                            <input
+                                type="text"
+                                value={emailSubject}
+                                onChange={(e) => setEmailSubject(e.target.value)}
+                                className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black text-sm"
+                                placeholder="Your Certificate: {title}"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Body (HTML supported)</label>
+                            <textarea
+                                value={emailBody}
+                                onChange={(e) => setEmailBody(e.target.value)}
+                                rows={4}
+                                className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black text-sm font-mono"
+                                placeholder="Dear {name}..."
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                Available placeholders: {'{name}'}, {'{title}'}, {'{verify_url}'}. HTML tags allowed (e.g. &lt;b&gt;, &lt;br&gt;).
+                            </p>
+                        </div>
                     </div>
                 </div>
 

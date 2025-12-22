@@ -14,6 +14,8 @@ export interface CertificateData {
   name_x_pos?: number;
   qr_x_pos?: number;
   qr_y_pos?: number;
+  email_subject?: string;
+  email_body?: string;
 }
 
 export interface Certificate extends CertificateData {
