@@ -13,8 +13,8 @@ export default function AdminUploadPage() {
     const [certificateTitle, setCertificateTitle] = useState('');
 
     // Formatting State
-    const [nameFont, setNameFont] = useState('Great Vibes');
-    const [nameSize, setNameSize] = useState(75);
+    const [nameFont, setNameFont] = useState('Quintessential');
+    const [nameSize, setNameSize] = useState(100);
     const [nameColor, setNameColor] = useState('#000000');
     const [nameYPos, setNameYPos] = useState(9.0); // Default 9cm
 
@@ -78,10 +78,10 @@ export default function AdminUploadPage() {
         setTemplateFile(null);
         setIssueDate('');
         setCertificateTitle('');
-        setNameFont('Great Vibes');
-        setNameSize(75);
+        setNameFont('Quintessential');
+        setNameSize(100);
         setNameColor('#000000');
-        setNameYPos(10.5);
+        setNameYPos(9.0);
         setLogs([]);
         setProgress(0);
 
@@ -226,16 +226,34 @@ export default function AdminUploadPage() {
                         <h3 className="text-sm font-semibold text-gray-700 mb-3">Name Formatting</h3>
                         <div className="grid grid-cols-2 gap-4 mb-4">
                             <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1">
-                                    Font Family (<a href="https://fonts.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Browse Google Fonts</a>)
-                                </label>
-                                <input
-                                    type="text"
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Font Family</label>
+                                <select
                                     value={nameFont}
                                     onChange={(e) => setNameFont(e.target.value)}
-                                    placeholder="e.g. Great Vibes"
-                                    className="block w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
-                                />
+                                    className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
+                                >
+                                    <optgroup label="Cursive / Script">
+                                        <option value="Quintessential">Quintessential</option>
+                                        <option value="Great Vibes">Great Vibes</option>
+                                        <option value="Dancing Script">Dancing Script</option>
+                                        <option value="Pacifico">Pacifico</option>
+                                        <option value="Sacramento">Sacramento</option>
+                                        <option value="Parisienne">Parisienne</option>
+                                    </optgroup>
+                                    <optgroup label="Serif">
+                                        <option value="Merriweather">Merriweather</option>
+                                        <option value="Playfair Display">Playfair Display</option>
+                                        <option value="Lora">Lora</option>
+                                        <option value="Cinzel">Cinzel</option>
+                                    </optgroup>
+                                    <optgroup label="Sans-Serif">
+                                        <option value="Roboto">Roboto</option>
+                                        <option value="Open Sans">Open Sans</option>
+                                        <option value="Lato">Lato</option>
+                                        <option value="Montserrat">Montserrat</option>
+                                        <option value="Oswald">Oswald</option>
+                                    </optgroup>
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-gray-500 mb-1">Font Size</label>
@@ -243,7 +261,7 @@ export default function AdminUploadPage() {
                                     type="number"
                                     value={nameSize}
                                     onChange={(e) => setNameSize(Number(e.target.value))}
-                                    className="block w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                                    className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
                                 />
                             </div>
                         </div>
@@ -255,13 +273,13 @@ export default function AdminUploadPage() {
                                         type="color"
                                         value={nameColor}
                                         onChange={(e) => setNameColor(e.target.value)}
-                                        className="h-8 w-8 rounded cursor-pointer border-0 p-0"
+                                        className="h-10 w-10 rounded cursor-pointer border-0 p-0"
                                     />
                                     <input
                                         type="text"
                                         value={nameColor}
                                         onChange={(e) => setNameColor(e.target.value)}
-                                        className="block w-24 px-2 py-1.5 text-xs font-mono border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black uppercase"
+                                        className="block w-full px-2 h-10 text-xs font-mono border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black uppercase"
                                         placeholder="#000000"
                                     />
                                 </div>
@@ -273,7 +291,7 @@ export default function AdminUploadPage() {
                                     step="0.1"
                                     value={nameYPos}
                                     onChange={(e) => setNameYPos(Number(e.target.value))}
-                                    className="block w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                                    className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
                                 />
                             </div>
                         </div>
@@ -340,6 +358,5 @@ export default function AdminUploadPage() {
                 )}
             </div>
         </div>
-
     );
 }
