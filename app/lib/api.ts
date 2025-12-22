@@ -7,6 +7,10 @@ export interface CertificateData {
   certificate_title: string;
   template_drive_id?: string;
   output_folder_id?: string;
+  name_font?: string;
+  name_size?: number;
+  name_color?: string;
+  name_y_pos?: number;
 }
 
 export interface Certificate extends CertificateData {

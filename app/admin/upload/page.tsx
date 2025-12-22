@@ -11,7 +11,13 @@ export default function AdminUploadPage() {
     const [templateFile, setTemplateFile] = useState<File | null>(null);
     const [issueDate, setIssueDate] = useState('');
     const [certificateTitle, setCertificateTitle] = useState('');
-    const [eventName, setEventName] = useState('');
+
+    // Formatting State
+    const [nameFont, setNameFont] = useState('Great Vibes');
+    const [nameSize, setNameSize] = useState(75);
+    const [nameColor, setNameColor] = useState('#000000');
+    const [nameYPos, setNameYPos] = useState(9.0); // Default 9cm
+
     const [uploading, setUploading] = useState(false);
     const [logs, setLogs] = useState<string[]>([]);
     const [progress, setProgress] = useState(0);
@@ -67,8 +73,25 @@ export default function AdminUploadPage() {
         }
     };
 
+    const handleReset = () => {
+        setFile(null);
+        setTemplateFile(null);
+        setIssueDate('');
+        setCertificateTitle('');
+        setNameFont('Great Vibes');
+        setNameSize(75);
+        setNameColor('#000000');
+        setNameYPos(10.5);
+        setLogs([]);
+        setProgress(0);
+
+        // Reset file inputs manually
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+        fileInputs.forEach(input => (input as HTMLInputElement).value = '');
+    };
+
     const handleUpload = async () => {
-        if (!file || !issueDate || !certificateTitle || !templateFile || !eventName) return;
+        if (!file || !issueDate || !certificateTitle || !templateFile) return;
 
         setUploading(true);
         setLogs(prev => [...prev, 'Starting upload process...']);
@@ -76,7 +99,8 @@ export default function AdminUploadPage() {
         // 1. Upload Template
         setLogs(prev => [...prev, 'Uploading template...']);
         try {
-            const templateRes = await uploadTemplate(templateFile, eventName);
+            // Use certificateTitle as eventName for folder creation
+            const templateRes = await uploadTemplate(templateFile, certificateTitle);
 
             if (templateRes.status !== 'success' || !templateRes.template_drive_id || !templateRes.output_folder_id) {
                 throw new Error(templateRes.message || 'Template upload failed');
@@ -113,6 +137,12 @@ export default function AdminUploadPage() {
                         row.template_drive_id = templateId;
                         row.output_folder_id = folderId;
 
+                        // Apply formatting
+                        row.name_font = nameFont;
+                        row.name_size = nameSize;
+                        row.name_color = nameColor;
+                        row.name_y_pos = nameYPos;
+
                         const res = await uploadCertificate(row);
                         if (res.status === 'success') {
                             successCount++;
@@ -126,22 +156,7 @@ export default function AdminUploadPage() {
 
                     setLogs(prev => [...prev, `Upload complete. Success: ${successCount}, Failed: ${failCount}`]);
                     setUploading(false);
-
-                    // Reset form on success
-                    if (successCount > 0) {
-                        setTimeout(() => {
-                            setFile(null);
-                            setTemplateFile(null);
-                            setIssueDate('');
-                            setCertificateTitle('');
-                            setEventName('');
-                            // Logs are kept as requested
-                            setProgress(0);
-                            // Reset file inputs manually
-                            const fileInputs = document.querySelectorAll('input[type="file"]');
-                            fileInputs.forEach(input => (input as HTMLInputElement).value = '');
-                        }, 2000);
-                    }
+                    // No auto-reset
                 },
                 error: (error) => {
                     setLogs(prev => [...prev, `CSV Error: ${error.message}`]);
@@ -166,27 +181,24 @@ export default function AdminUploadPage() {
             <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-6 relative">
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold text-gray-800">Admin Certificate Upload</h1>
-                    <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                        <LogOut className="w-4 h-4" />
-                        Logout
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleReset}
+                            className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+                        >
+                            Reset Form
+                        </button>
+                        <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            Logout
+                        </button>
+                    </div>
                 </div>
 
                 <div className="mb-6 space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Event Name</label>
-                        <input
-                            type="text"
-                            value={eventName}
-                            onChange={(e) => setEventName(e.target.value)}
-                            placeholder="e.g. React Summit 2024"
-                            className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-black"
-                        />
-                    </div>
-
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Certificate Title</label>
                         <input
@@ -209,12 +221,87 @@ export default function AdminUploadPage() {
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Certificate Template (Image)</label>
+                    {/* Formatting Options */}
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <h3 className="text-sm font-semibold text-gray-700 mb-3">Name Formatting</h3>
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1">
+                                    Font Family (<a href="https://fonts.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Browse Google Fonts</a>)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={nameFont}
+                                    onChange={(e) => setNameFont(e.target.value)}
+                                    placeholder="e.g. Great Vibes"
+                                    className="block w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Font Size</label>
+                                <input
+                                    type="number"
+                                    value={nameSize}
+                                    onChange={(e) => setNameSize(Number(e.target.value))}
+                                    className="block w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Color</label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="color"
+                                        value={nameColor}
+                                        onChange={(e) => setNameColor(e.target.value)}
+                                        className="h-8 w-8 rounded cursor-pointer border-0 p-0"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={nameColor}
+                                        onChange={(e) => setNameColor(e.target.value)}
+                                        className="block w-24 px-2 py-1.5 text-xs font-mono border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black uppercase"
+                                        placeholder="#000000"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Y-Axis Position (cm)</label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    value={nameYPos}
+                                    onChange={(e) => setNameYPos(Number(e.target.value))}
+                                    className="block w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Certificate Template (Image)</label>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleTemplateChange}
+                        className="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
+                    <div className="flex items-center gap-4">
                         <input
                             type="file"
-                            accept="image/*"
-                            onChange={handleTemplateChange}
+                            accept=".csv"
+                            onChange={handleFileChange}
                             className="block w-full text-sm text-gray-500
                     file:mr-4 file:py-2 file:px-4
                     file:rounded-full file:border-0
@@ -222,53 +309,37 @@ export default function AdminUploadPage() {
                     file:bg-blue-50 file:text-blue-700
                     hover:file:bg-blue-100"
                         />
+                        <button
+                            onClick={handleUpload}
+                            disabled={!file || !issueDate || !certificateTitle || !templateFile || uploading}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-white transition-colors
+                    ${!file || !issueDate || !certificateTitle || !templateFile || uploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                        >
+                            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                            Upload
+                        </button>
                     </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
-                        <div className="flex items-center gap-4">
-                            <input
-                                type="file"
-                                accept=".csv"
-                                onChange={handleFileChange}
-                                className="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-blue-50 file:text-blue-700
-                    hover:file:bg-blue-100"
-                            />
-                            <button
-                                onClick={handleUpload}
-                                disabled={!file || !issueDate || !certificateTitle || !templateFile || !eventName || uploading}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-white transition-colors
-                    ${!file || !issueDate || !certificateTitle || !templateFile || !eventName || uploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
-                            >
-                                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                Upload
-                            </button>
-                        </div>
-                        <p className="mt-2 text-xs text-gray-500">Headers required: email, name</p>
-                    </div>
-                </div>
-
-                {uploading && (
-                    <div className="mb-6">
-                        <div className="w-full bg-gray-200 rounded-full h-2.5">
-                            <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
-                        </div>
-                        <p className="text-right text-xs text-gray-500 mt-1">{progress}%</p>
-                    </div>
-                )}
-
-                <div className="bg-gray-900 rounded-lg p-4 h-64 overflow-y-auto font-mono text-xs text-green-400">
-                    {logs.length === 0 ? (
-                        <span className="text-gray-500">Logs will appear here...</span>
-                    ) : (
-                        logs.map((log, i) => <div key={i}>{log}</div>)
-                    )}
+                    <p className="mt-2 text-xs text-gray-500">Headers required: email, name</p>
                 </div>
             </div>
+
+            {uploading && (
+                <div className="mb-6">
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
+                    </div>
+                    <p className="text-right text-xs text-gray-500 mt-1">{progress}%</p>
+                </div>
+            )}
+
+            <div className="bg-gray-900 rounded-lg p-4 h-64 overflow-y-auto font-mono text-xs text-green-400">
+                {logs.length === 0 ? (
+                    <span className="text-gray-500">Logs will appear here...</span>
+                ) : (
+                    logs.map((log, i) => <div key={i}>{log}</div>)
+                )}
+            </div>
         </div>
+
     );
 }
