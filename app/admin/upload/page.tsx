@@ -232,27 +232,14 @@ export default function AdminUploadPage() {
                                     onChange={(e) => setNameFont(e.target.value)}
                                     className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
                                 >
-                                    <optgroup label="Cursive / Script">
-                                        <option value="Quintessential">Quintessential</option>
-                                        <option value="Great Vibes">Great Vibes</option>
-                                        <option value="Dancing Script">Dancing Script</option>
-                                        <option value="Pacifico">Pacifico</option>
-                                        <option value="Sacramento">Sacramento</option>
-                                        <option value="Parisienne">Parisienne</option>
-                                    </optgroup>
-                                    <optgroup label="Serif">
-                                        <option value="Merriweather">Merriweather</option>
-                                        <option value="Playfair Display">Playfair Display</option>
-                                        <option value="Lora">Lora</option>
-                                        <option value="Cinzel">Cinzel</option>
-                                    </optgroup>
-                                    <optgroup label="Sans-Serif">
-                                        <option value="Roboto">Roboto</option>
-                                        <option value="Open Sans">Open Sans</option>
-                                        <option value="Lato">Lato</option>
-                                        <option value="Montserrat">Montserrat</option>
-                                        <option value="Oswald">Oswald</option>
-                                    </optgroup>
+                                    <option value="Quintessential">Quintessential</option>
+                                    <option value="Meie Script">Meie Script</option>
+                                    <option value="Luxurious Script">Luxurious Script</option>
+                                    <option value="Italianno">Italianno</option>
+                                    <option value="Island Moments">Island Moments</option>
+                                    <option value="Felipa">Felipa</option>
+                                    <option value="Moon Dance">Moon Dance</option>
+                                    <option value="Bilbo Swash Caps">Bilbo Swash Caps</option>
                                 </select>
                             </div>
                             <div>
