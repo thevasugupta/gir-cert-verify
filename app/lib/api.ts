@@ -16,6 +16,13 @@ export interface CertificateData {
   qr_y_pos?: number;
   email_subject?: string;
   email_body?: string;
+  // Rank Box
+  rank_text?: string;
+  rank_font?: string;
+  rank_size?: number;
+  rank_color?: string;
+  rank_x_pos?: number;
+  rank_y_pos?: number;
 }
 
 export interface Certificate extends CertificateData {

@@ -23,6 +23,14 @@ export default function AdminUploadPage() {
     const [qrXPos, setQrXPos] = useState(1.0);
     const [qrYPos, setQrYPos] = useState(17.5);
 
+    // Rank Box State
+    const [hasRankData, setHasRankData] = useState(false);
+    const [rankFont, setRankFont] = useState('Quintessential');
+    const [rankSize, setRankSize] = useState(30);
+    const [rankColor, setRankColor] = useState('#000000');
+    const [rankXPos, setRankXPos] = useState(14.85);
+    const [rankYPos, setRankYPos] = useState(11.0);
+
     // Email State
     const [emailSubject, setEmailSubject] = useState('Your Certificate: {title}');
     const [emailBody, setEmailBody] = useState('Dear {name},\n\nPlease find your certificate attached.\n\nVerify at: {verify_url}');
@@ -69,10 +77,30 @@ export default function AdminUploadPage() {
     }, [handleLogout]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            setFile(e.target.files[0]);
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setFile(file);
             setLogs([]);
             setProgress(0);
+
+            // Peek at CSV to check for 3rd column
+            Papa.parse(file, {
+                preview: 5,
+                header: false, // Read as array to check indices
+                skipEmptyLines: true,
+                complete: (results) => {
+                    if (results.data && results.data.length > 0) {
+                        // Check if ANY row has >= 3 columns
+                        const hasRank = results.data.some((row: any) => row.length >= 3);
+                        if (hasRank) {
+                            setHasRankData(true);
+                            setLogs(prev => [...prev, 'Detected 3rd column: Enabling Rank Box features.']);
+                        } else {
+                            setHasRankData(false);
+                        }
+                    }
+                }
+            });
         }
     };
 
@@ -94,6 +122,12 @@ export default function AdminUploadPage() {
         setNameXPos(14.85);
         setQrXPos(1.0);
         setQrYPos(17.5);
+        setHasRankData(false);
+        setRankFont('Quintessential');
+        setRankSize(30);
+        setRankColor('#000000');
+        setRankXPos(14.85);
+        setRankYPos(11.0);
         setEmailSubject('Your Certificate: {title}');
         setEmailBody('Dear {name},\n\nPlease find your certificate attached.\n\nVerify at: {verify_url}');
         setLogs([]);
@@ -127,44 +161,79 @@ export default function AdminUploadPage() {
             // 2. Parse CSV
             setLogs(prev => [...prev, 'Parsing CSV...']);
             Papa.parse(file, {
-                header: true,
+                header: false, // Read as arrays to access by index
                 skipEmptyLines: true,
                 complete: async (results) => {
-                    const rows = results.data as CertificateData[];
-                    setLogs(prev => [...prev, `Found ${rows.length} rows. Starting certificate data upload...`]);
+                    const rawRows = results.data as string[][];
+                    // Assume first row is header if we found "email" or "name" in it, otherwise treat as data?
+                    // For simplicity, let's assume standard format: Header row exists.
+
+                    const header = rawRows[0].map(h => h.toLowerCase().trim());
+                    const emailIdx = header.findIndex(h => h.includes('email'));
+                    const nameIdx = header.findIndex(h => h.includes('name'));
+                    const rankIdx = 2; // Hardcoded as 3rd column
+
+                    if (emailIdx === -1 || nameIdx === -1) {
+                        setLogs(prev => [...prev, 'Error: Could not find "email" or "name" columns in header.']);
+                        setUploading(false);
+                        return;
+                    }
+
+                    const dataRows = rawRows.slice(1); // Skip header
+                    setLogs(prev => [...prev, `Found ${dataRows.length} rows. Starting certificate data upload...`]);
 
                     let successCount = 0;
                     let failCount = 0;
 
-                    for (let i = 0; i < rows.length; i++) {
-                        const row = rows[i];
+                    for (let i = 0; i < dataRows.length; i++) {
+                        const rowData = dataRows[i];
+                        const email = rowData[emailIdx];
+                        const name = rowData[nameIdx];
+                        const rank = rowData[rankIdx] || '';
+
                         // Basic validation
-                        if (!row.email || !row.name) {
-                            setLogs(prev => [...prev, `Row ${i + 1}: Skipped (Missing data)`]);
+                        if (!email || !name) {
+                            setLogs(prev => [...prev, `Row ${i + 1}: Skipped (Missing email or name)`]);
                             failCount++;
                             continue;
                         }
 
-                        // Apply global values
-                        row.issue_date = issueDate;
-                        row.certificate_title = certificateTitle;
-                        row.template_drive_id = templateId;
-                        row.output_folder_id = folderId;
+                        const certData: CertificateData = {
+                            email,
+                            name,
+                            issue_date: issueDate,
+                            // If rank exists, it overrides the title for "Issued For"
+                            certificate_title: rank || certificateTitle,
+                            template_drive_id: templateId,
+                            output_folder_id: folderId,
 
-                        // Apply formatting
-                        row.name_font = nameFont;
-                        row.name_size = nameSize;
-                        row.name_color = nameColor;
-                        row.name_y_pos = nameYPos;
-                        row.name_x_pos = nameXPos;
-                        row.qr_x_pos = qrXPos;
-                        row.qr_y_pos = qrYPos;
+                            // Name Formatting
+                            name_font: nameFont,
+                            name_size: nameSize,
+                            name_color: nameColor,
+                            name_y_pos: nameYPos,
+                            name_x_pos: nameXPos,
 
-                        // Apply email config
-                        row.email_subject = emailSubject;
-                        row.email_body = emailBody;
+                            // QR Formatting
+                            qr_x_pos: qrXPos,
+                            qr_y_pos: qrYPos,
 
-                        const res = await uploadCertificate(row);
+                            // Email Config
+                            email_subject: emailSubject,
+                            email_body: emailBody
+                        };
+
+                        // Add Rank Formatting if applicable
+                        if (rank) {
+                            certData.rank_text = rank;
+                            certData.rank_font = rankFont;
+                            certData.rank_size = rankSize;
+                            certData.rank_color = rankColor;
+                            certData.rank_x_pos = rankXPos;
+                            certData.rank_y_pos = rankYPos;
+                        }
+
+                        const res = await uploadCertificate(certData);
                         if (res.status === 'success') {
                             successCount++;
                         } else {
@@ -172,12 +241,11 @@ export default function AdminUploadPage() {
                             setLogs(prev => [...prev, `Row ${i + 1}: Failed - ${res.message}`]);
                         }
 
-                        setProgress(Math.round(((i + 1) / rows.length) * 100));
+                        setProgress(Math.round(((i + 1) / dataRows.length) * 100));
                     }
 
                     setLogs(prev => [...prev, `Upload complete. Success: ${successCount}, Failed: ${failCount}`]);
                     setUploading(false);
-                    // No auto-reset
                 },
                 error: (error) => {
                     setLogs(prev => [...prev, `CSV Error: ${error.message}`]);
@@ -239,6 +307,36 @@ export default function AdminUploadPage() {
                             value={issueDate}
                             onChange={(e) => setIssueDate(e.target.value)}
                             className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-black"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Certificate Template (Image)</label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleTemplateChange}
+                            className="block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
+                        <input
+                            type="file"
+                            accept=".csv"
+                            onChange={handleFileChange}
+                            className="block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
                         />
                     </div>
 
@@ -345,6 +443,85 @@ export default function AdminUploadPage() {
                             </div>
                         </div>
 
+                        {/* Rank Layout (Conditional) */}
+                        {hasRankData && (
+                            <div>
+                                <h3 className="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">Rank Box Layout</h3>
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Font Family</label>
+                                        <select
+                                            value={rankFont}
+                                            onChange={(e) => setRankFont(e.target.value)}
+                                            className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
+                                        >
+                                            <option value="Quintessential">Quintessential</option>
+                                            <option value="Meie Script">Meie Script</option>
+                                            <option value="Luxurious Script">Luxurious Script</option>
+                                            <option value="Italianno">Italianno</option>
+                                            <option value="Island Moments">Island Moments</option>
+                                            <option value="Felipa">Felipa</option>
+                                            <option value="Moon Dance">Moon Dance</option>
+                                            <option value="Bilbo Swash Caps">Bilbo Swash Caps</option>
+                                            <option value="Roboto">Roboto</option>
+                                            <option value="Open Sans">Open Sans</option>
+                                            <option value="Lato">Lato</option>
+                                            <option value="Montserrat">Montserrat</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Font Size</label>
+                                        <input
+                                            type="number"
+                                            value={rankSize}
+                                            onChange={(e) => setRankSize(Number(e.target.value))}
+                                            className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Color</label>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="color"
+                                                value={rankColor}
+                                                onChange={(e) => setRankColor(e.target.value)}
+                                                className="h-10 w-10 rounded cursor-pointer border-0 p-0"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={rankColor}
+                                                onChange={(e) => setRankColor(e.target.value)}
+                                                className="block w-full px-2 h-10 text-xs font-mono border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black uppercase"
+                                                placeholder="#000000"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">X-Axis (cm)</label>
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            value={rankXPos}
+                                            onChange={(e) => setRankXPos(Number(e.target.value))}
+                                            className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Y-Axis (cm)</label>
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            value={rankYPos}
+                                            onChange={(e) => setRankYPos(Number(e.target.value))}
+                                            className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                     </div>
                 </div>
 
@@ -378,47 +555,22 @@ export default function AdminUploadPage() {
                     </div>
                 </div>
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Certificate Template (Image)</label>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleTemplateChange}
-                        className="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-blue-50 file:text-blue-700
-                    hover:file:bg-blue-100"
-                    />
-                </div>
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
-                    <div className="flex items-center gap-4">
-                        <input
-                            type="file"
-                            accept=".csv"
-                            onChange={handleFileChange}
-                            className="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-blue-50 file:text-blue-700
-                    hover:file:bg-blue-100"
-                        />
-                        <button
-                            onClick={handleUpload}
-                            disabled={!file || !issueDate || !certificateTitle || !templateFile || uploading}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-white transition-colors
-                    ${!file || !issueDate || !certificateTitle || !templateFile || uploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
-                        >
-                            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                            Upload
-                        </button>
-                    </div>
-                    <p className="mt-2 text-xs text-gray-500">Headers required: email, name</p>
-                </div>
+            </div>
+
+            {/* Generate Button Area */}
+            <div className="max-w-2xl mx-auto mt-6 mb-6">
+                <button
+                    onClick={handleUpload}
+                    disabled={!file || !issueDate || !certificateTitle || !templateFile || uploading}
+                    className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-white text-lg shadow-lg transition-all transform hover:scale-[1.02]
+                    ${!file || !issueDate || !certificateTitle || !templateFile || uploading
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'}`}
+                >
+                    {uploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Upload className="w-6 h-6" />}
+                    Generate and Send Certificates
+                </button>
             </div>
 
             {uploading && (
