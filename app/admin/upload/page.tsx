@@ -12,6 +12,12 @@ export default function AdminUploadPage() {
     const [issueDate, setIssueDate] = useState('');
     const [certificateTitle, setCertificateTitle] = useState('');
 
+    // Upload Mode State
+    const [uploadMode, setUploadMode] = useState<'csv' | 'manual'>('csv');
+    const [manualEntries, setManualEntries] = useState<Array<{ name: string; email: string; rank: string }>>([
+        { name: '', email: '', rank: '' }
+    ]);
+
     // Formatting State
     const [nameFont, setNameFont] = useState('Quintessential');
     const [nameSize, setNameSize] = useState(100);
@@ -136,10 +142,42 @@ export default function AdminUploadPage() {
         // Reset file inputs manually
         const fileInputs = document.querySelectorAll('input[type="file"]');
         fileInputs.forEach(input => (input as HTMLInputElement).value = '');
+
+        // Reset Manual Inputs
+        setManualEntries([{ name: '', email: '', rank: '' }]);
+    };
+
+    const addManualEntry = () => {
+        setManualEntries(prev => [...prev, { name: '', email: '', rank: '' }]);
+    };
+
+    const removeManualEntry = (index: number) => {
+        if (manualEntries.length > 1) {
+            setManualEntries(prev => prev.filter((_, i) => i !== index));
+        }
+    };
+
+    const updateManualEntry = (index: number, field: 'name' | 'email' | 'rank', value: string) => {
+        setManualEntries(prev => {
+            const newEntries = [...prev];
+            newEntries[index] = { ...newEntries[index], [field]: value };
+            return newEntries;
+        });
+
+        if (field === 'rank' && value) {
+            setHasRankData(true);
+        }
     };
 
     const handleUpload = async () => {
-        if (!file || !issueDate || !certificateTitle || !templateFile) return;
+        if (!issueDate || !certificateTitle || !templateFile) return;
+
+        // Validation based on mode
+        if (uploadMode === 'csv' && !file) return;
+
+        // Filter valid entries for manual mode
+        const validManualEntries = manualEntries.filter(e => e.name && e.email);
+        if (uploadMode === 'manual' && validManualEntries.length === 0) return;
 
         setUploading(true);
         setLogs(prev => [...prev, 'Starting upload process...']);
@@ -158,100 +196,119 @@ export default function AdminUploadPage() {
             const folderId = templateRes.output_folder_id;
             setLogs(prev => [...prev, 'Template uploaded successfully.']);
 
-            // 2. Parse CSV
-            setLogs(prev => [...prev, 'Parsing CSV...']);
-            Papa.parse(file, {
-                header: false, // Read as arrays to access by index
-                skipEmptyLines: true,
-                complete: async (results) => {
-                    const rawRows = results.data as string[][];
-                    // Assume first row is header if we found "email" or "name" in it, otherwise treat as data?
-                    // For simplicity, let's assume standard format: Header row exists.
+            // Common Data Construction Helper
+            const createCertData = (email: string, name: string, rank: string): CertificateData => {
+                const certData: CertificateData = {
+                    email,
+                    name,
+                    issue_date: issueDate,
+                    certificate_title: rank || certificateTitle,
+                    template_drive_id: templateId,
+                    output_folder_id: folderId,
+                    name_font: nameFont,
+                    name_size: nameSize,
+                    name_color: nameColor,
+                    name_y_pos: nameYPos,
+                    name_x_pos: nameXPos,
+                    qr_x_pos: qrXPos,
+                    qr_y_pos: qrYPos,
+                    email_subject: emailSubject,
+                    email_body: emailBody
+                };
 
-                    const header = rawRows[0].map(h => h.toLowerCase().trim());
-                    const emailIdx = header.findIndex(h => h.includes('email'));
-                    const nameIdx = header.findIndex(h => h.includes('name'));
-                    const rankIdx = 2; // Hardcoded as 3rd column
-
-                    if (emailIdx === -1 || nameIdx === -1) {
-                        setLogs(prev => [...prev, 'Error: Could not find "email" or "name" columns in header.']);
-                        setUploading(false);
-                        return;
-                    }
-
-                    const dataRows = rawRows.slice(1); // Skip header
-                    setLogs(prev => [...prev, `Found ${dataRows.length} rows. Starting certificate data upload...`]);
-
-                    let successCount = 0;
-                    let failCount = 0;
-
-                    for (let i = 0; i < dataRows.length; i++) {
-                        const rowData = dataRows[i];
-                        const email = rowData[emailIdx];
-                        const name = rowData[nameIdx];
-                        const rank = rowData[rankIdx] || '';
-
-                        // Basic validation
-                        if (!email || !name) {
-                            setLogs(prev => [...prev, `Row ${i + 1}: Skipped (Missing email or name)`]);
-                            failCount++;
-                            continue;
-                        }
-
-                        const certData: CertificateData = {
-                            email,
-                            name,
-                            issue_date: issueDate,
-                            // If rank exists, it overrides the title for "Issued For"
-                            certificate_title: rank || certificateTitle,
-                            template_drive_id: templateId,
-                            output_folder_id: folderId,
-
-                            // Name Formatting
-                            name_font: nameFont,
-                            name_size: nameSize,
-                            name_color: nameColor,
-                            name_y_pos: nameYPos,
-                            name_x_pos: nameXPos,
-
-                            // QR Formatting
-                            qr_x_pos: qrXPos,
-                            qr_y_pos: qrYPos,
-
-                            // Email Config
-                            email_subject: emailSubject,
-                            email_body: emailBody
-                        };
-
-                        // Add Rank Formatting if applicable
-                        if (rank) {
-                            certData.rank_text = rank;
-                            certData.rank_font = rankFont;
-                            certData.rank_size = rankSize;
-                            certData.rank_color = rankColor;
-                            certData.rank_x_pos = rankXPos;
-                            certData.rank_y_pos = rankYPos;
-                        }
-
-                        const res = await uploadCertificate(certData);
-                        if (res.status === 'success') {
-                            successCount++;
-                        } else {
-                            failCount++;
-                            setLogs(prev => [...prev, `Row ${i + 1}: Failed - ${res.message}`]);
-                        }
-
-                        setProgress(Math.round(((i + 1) / dataRows.length) * 100));
-                    }
-
-                    setLogs(prev => [...prev, `Upload complete. Success: ${successCount}, Failed: ${failCount}`]);
-                    setUploading(false);
-                },
-                error: (error) => {
-                    setLogs(prev => [...prev, `CSV Error: ${error.message}`]);
-                    setUploading(false);
+                if (rank) {
+                    certData.rank_text = rank;
+                    certData.rank_font = rankFont;
+                    certData.rank_size = rankSize;
+                    certData.rank_color = rankColor;
+                    certData.rank_x_pos = rankXPos;
+                    certData.rank_y_pos = rankYPos;
                 }
-            });
+                return certData;
+            };
+
+            if (uploadMode === 'manual') {
+                // MANUAL MODE
+                setLogs(prev => [...prev, `Processing ${validManualEntries.length} manual entries...`]);
+
+                let successCount = 0;
+                let failCount = 0;
+
+                for (let i = 0; i < validManualEntries.length; i++) {
+                    const entry = validManualEntries[i];
+                    const certData = createCertData(entry.email, entry.name, entry.rank);
+
+                    const res = await uploadCertificate(certData);
+                    if (res.status === 'success') {
+                        successCount++;
+                        setLogs(prev => [...prev, `Success: Certificate generated for ${entry.name}`]);
+                    } else {
+                        failCount++;
+                        setLogs(prev => [...prev, `Failed (${entry.name}): ${res.message}`]);
+                    }
+                    setProgress(Math.round(((i + 1) / validManualEntries.length) * 100));
+                }
+                setLogs(prev => [...prev, `Manual upload complete. Success: ${successCount}, Failed: ${failCount}`]);
+                setUploading(false);
+
+            } else {
+                // CSV MODE
+                if (!file) return; // Should be caught above, but for safety
+                setLogs(prev => [...prev, 'Parsing CSV...']);
+                Papa.parse(file, {
+                    header: false,
+                    skipEmptyLines: true,
+                    complete: async (results) => {
+                        const rawRows = results.data as string[][];
+                        const header = rawRows[0].map(h => h.toLowerCase().trim());
+                        const emailIdx = header.findIndex(h => h.includes('email'));
+                        const nameIdx = header.findIndex(h => h.includes('name'));
+                        const rankIdx = 2;
+
+                        if (emailIdx === -1 || nameIdx === -1) {
+                            setLogs(prev => [...prev, 'Error: Could not find "email" or "name" columns in header.']);
+                            setUploading(false);
+                            return;
+                        }
+
+                        const dataRows = rawRows.slice(1);
+                        setLogs(prev => [...prev, `Found ${dataRows.length} rows. Starting certificate data upload...`]);
+
+                        let successCount = 0;
+                        let failCount = 0;
+
+                        for (let i = 0; i < dataRows.length; i++) {
+                            const rowData = dataRows[i];
+                            const email = rowData[emailIdx];
+                            const name = rowData[nameIdx];
+                            const rank = rowData[rankIdx] || '';
+
+                            if (!email || !name) {
+                                setLogs(prev => [...prev, `Row ${i + 1}: Skipped (Missing email or name)`]);
+                                failCount++;
+                                continue;
+                            }
+
+                            const certData = createCertData(email, name, rank);
+                            const res = await uploadCertificate(certData);
+
+                            if (res.status === 'success') {
+                                successCount++;
+                            } else {
+                                failCount++;
+                                setLogs(prev => [...prev, `Row ${i + 1}: Failed - ${res.message}`]);
+                            }
+                            setProgress(Math.round(((i + 1) / dataRows.length) * 100));
+                        }
+                        setLogs(prev => [...prev, `Upload complete. Success: ${successCount}, Failed: ${failCount}`]);
+                        setUploading(false);
+                    },
+                    error: (error) => {
+                        setLogs(prev => [...prev, `CSV Error: ${error.message}`]);
+                        setUploading(false);
+                    }
+                });
+            }
 
         } catch (error: any) {
             setLogs(prev => [...prev, `Error: ${error.message}`]);
@@ -326,18 +383,92 @@ export default function AdminUploadPage() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
-                        <input
-                            type="file"
-                            accept=".csv"
-                            onChange={handleFileChange}
-                            className="block w-full text-sm text-gray-500
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-full file:border-0
-                        file:text-sm file:font-semibold
-                        file:bg-blue-50 file:text-blue-700
-                        hover:file:bg-blue-100"
-                        />
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Data Source</label>
+                        <div className="flex bg-gray-100 p-1 rounded-lg mb-4 w-fit">
+                            <button
+                                onClick={() => setUploadMode('csv')}
+                                className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${uploadMode === 'csv' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                CSV Upload
+                            </button>
+                            <button
+                                onClick={() => setUploadMode('manual')}
+                                className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${uploadMode === 'manual' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                Manual Entry
+                            </button>
+                        </div>
+
+                        {uploadMode === 'csv' ? (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
+                                <input
+                                    type="file"
+                                    accept=".csv"
+                                    onChange={handleFileChange}
+                                    className="block w-full text-sm text-gray-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100"
+                                />
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {manualEntries.map((entry, index) => (
+                                    <div key={index} className="p-4 bg-blue-50 rounded-lg border border-blue-100 relative group">
+                                        {manualEntries.length > 1 && (
+                                            <button
+                                                onClick={() => removeManualEntry(index)}
+                                                className="absolute top-2 right-2 text-red-400 hover:text-red-600 p-1"
+                                                title="Remove Entry"
+                                            >
+                                                <LogOut className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        <div className="grid grid-cols-1 gap-3">
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
+                                                <input
+                                                    type="text"
+                                                    value={entry.name}
+                                                    onChange={(e) => updateManualEntry(index, 'name', e.target.value)}
+                                                    placeholder="John Doe"
+                                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-black text-sm"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
+                                                <input
+                                                    type="email"
+                                                    value={entry.email}
+                                                    onChange={(e) => updateManualEntry(index, 'email', e.target.value)}
+                                                    placeholder="john@example.com"
+                                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-black text-sm"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">Rank (Optional)</label>
+                                                <input
+                                                    type="text"
+                                                    value={entry.rank}
+                                                    onChange={(e) => updateManualEntry(index, 'rank', e.target.value)}
+                                                    placeholder="First Place Winner"
+                                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-black text-sm"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                <button
+                                    onClick={addManualEntry}
+                                    className="w-full py-2 border-2 border-dashed border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
+                                >
+                                    + Add Another Record
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Formatting Options */}
@@ -556,23 +687,28 @@ export default function AdminUploadPage() {
                 </div>
 
 
-            </div>
-
-            {/* Generate Button Area */}
-            <div className="max-w-2xl mx-auto mt-6 mb-6">
                 <button
                     onClick={handleUpload}
-                    disabled={!file || !issueDate || !certificateTitle || !templateFile || uploading}
-                    className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-white text-lg shadow-lg transition-all transform hover:scale-[1.02]
-                    ${!file || !issueDate || !certificateTitle || !templateFile || uploading
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'}`}
+                    disabled={uploading || !issueDate || !certificateTitle || !templateFile || (uploadMode === 'csv' ? !file : manualEntries.filter(e => e.name && e.email).length === 0)}
+                    className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]
+                    ${uploading || !issueDate || !certificateTitle || !templateFile || (uploadMode === 'csv' ? !file : manualEntries.filter(e => e.name && e.email).length === 0)
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-blue-500/30'
+                        }`}
                 >
-                    {uploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Upload className="w-6 h-6" />}
-                    Generate and Send Certificates
+                    {uploading ? (
+                        <span className="flex items-center justify-center gap-2">
+                            <Loader2 className="w-6 h-6 animate-spin" />
+                            Processing...
+                        </span>
+                    ) : (
+                        <span className="flex items-center justify-center gap-2">
+                            <Upload className="w-6 h-6" />
+                            Generate and Send Certificates
+                        </span>
+                    )}
                 </button>
             </div>
-
             {uploading && (
                 <div className="mb-6">
                     <div className="w-full bg-gray-200 rounded-full h-2.5">
