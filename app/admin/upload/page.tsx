@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Papa from 'papaparse';
 import { uploadCertificate, uploadTemplate, CertificateData } from '@/app/lib/api';
-import { Upload, Loader2, LogOut } from 'lucide-react';
+import { Upload, Loader2, LogOut, Plus, X, FileText, Settings2, Mail, Type, QrCode, Award, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function AdminUploadPage() {
@@ -323,268 +323,215 @@ export default function AdminUploadPage() {
     const today = `${year}-${month}-${day}`;
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8">
-            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-6 relative">
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold text-gray-800">Admin Certificate Upload</h1>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={handleReset}
-                            className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
-                        >
-                            Reset Form
-                        </button>
-                        <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                            <LogOut className="w-4 h-4" />
-                            Logout
-                        </button>
+        <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-emerald-50 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto">
+                {/* Premium Header Card */}
+                <div className="bg-white rounded-2xl shadow-xl border border-amber-200/50 p-6 mb-6 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-600 via-amber-500 to-emerald-600"></div>
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl shadow-lg shadow-emerald-500/20">
+                                <Award className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-700 to-amber-600 bg-clip-text text-transparent">
+                                    Certificate Generator
+                                </h1>
+                                <p className="text-xs text-stone-500">Admin Dashboard</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleReset}
+                                className="px-4 py-2 text-sm font-medium text-stone-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all duration-200 border border-stone-200 hover:border-emerald-200"
+                            >
+                                Reset
+                            </button>
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 border border-red-100 hover:border-red-200"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                Logout
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div className="mb-6 space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Certificate Title</label>
-                        <input
-                            type="text"
-                            value={certificateTitle}
-                            onChange={(e) => setCertificateTitle(e.target.value)}
-                            placeholder="e.g. Advanced React Certification"
-                            className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-black"
-                        />
-                    </div>
+                {/* Main Form Card */}
+                <div className="bg-white rounded-2xl shadow-xl border border-amber-200/50 p-6 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 via-emerald-500 to-amber-400"></div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Issue Date</label>
-                        <input
-                            type="date"
-                            max={today}
-                            value={issueDate}
-                            onChange={(e) => setIssueDate(e.target.value)}
-                            className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-black"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Certificate Template (Image)</label>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleTemplateChange}
-                            className="block w-full text-sm text-gray-500
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-full file:border-0
-                        file:text-sm file:font-semibold
-                        file:bg-blue-50 file:text-blue-700
-                        hover:file:bg-blue-100"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Data Source</label>
-                        <div className="flex bg-gray-100 p-1 rounded-lg mb-4 w-fit">
-                            <button
-                                onClick={() => setUploadMode('csv')}
-                                className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${uploadMode === 'csv' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                            >
-                                CSV Upload
-                            </button>
-                            <button
-                                onClick={() => setUploadMode('manual')}
-                                className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${uploadMode === 'manual' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                            >
-                                Manual Entry
-                            </button>
+                    <div className="mb-6 space-y-5">
+                        {/* Certificate Title */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-semibold text-emerald-800 mb-2">
+                                <Type className="w-4 h-4 text-amber-600" />
+                                Certificate Title
+                            </label>
+                            <input
+                                type="text"
+                                value={certificateTitle}
+                                onChange={(e) => setCertificateTitle(e.target.value)}
+                                placeholder="e.g. Advanced React Certification"
+                                className="block w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:border-amber-400 focus:bg-white outline-none text-stone-800 transition-all duration-200 placeholder:text-stone-400"
+                            />
                         </div>
 
-                        {uploadMode === 'csv' ? (
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
-                                <input
-                                    type="file"
-                                    accept=".csv"
-                                    onChange={handleFileChange}
-                                    className="block w-full text-sm text-gray-500
-                                file:mr-4 file:py-2 file:px-4
-                                file:rounded-full file:border-0
-                                file:text-sm file:font-semibold
-                                file:bg-blue-50 file:text-blue-700
-                                hover:file:bg-blue-100"
-                                />
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {manualEntries.map((entry, index) => (
-                                    <div key={index} className="p-4 bg-blue-50 rounded-lg border border-blue-100 relative group">
-                                        {manualEntries.length > 1 && (
-                                            <button
-                                                onClick={() => removeManualEntry(index)}
-                                                className="absolute top-2 right-2 text-red-400 hover:text-red-600 p-1"
-                                                title="Remove Entry"
-                                            >
-                                                <LogOut className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                        <div className="grid grid-cols-1 gap-3">
-                                            <div>
-                                                <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
-                                                <input
-                                                    type="text"
-                                                    value={entry.name}
-                                                    onChange={(e) => updateManualEntry(index, 'name', e.target.value)}
-                                                    placeholder="John Doe"
-                                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-black text-sm"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
-                                                <input
-                                                    type="email"
-                                                    value={entry.email}
-                                                    onChange={(e) => updateManualEntry(index, 'email', e.target.value)}
-                                                    placeholder="john@example.com"
-                                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-black text-sm"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-gray-500 mb-1">Rank (Optional)</label>
-                                                <input
-                                                    type="text"
-                                                    value={entry.rank}
-                                                    onChange={(e) => updateManualEntry(index, 'rank', e.target.value)}
-                                                    placeholder="First Place Winner"
-                                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-black text-sm"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                        {/* Issue Date */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-semibold text-emerald-800 mb-2">
+                                <FileText className="w-4 h-4 text-amber-600" />
+                                Issue Date
+                            </label>
+                            <input
+                                type="date"
+                                max={today}
+                                value={issueDate}
+                                onChange={(e) => setIssueDate(e.target.value)}
+                                className="block w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:border-amber-400 focus:bg-white outline-none text-stone-800 transition-all duration-200"
+                            />
+                        </div>
+
+                        {/* Template Upload */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-semibold text-emerald-800 mb-2">
+                                <FileText className="w-4 h-4 text-amber-600" />
+                                Certificate Template
+                            </label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleTemplateChange}
+                                className="block w-full text-sm text-stone-600
+                                    file:mr-4 file:py-2.5 file:px-5
+                                    file:rounded-xl file:border-0
+                                    file:text-sm file:font-semibold
+                                    file:bg-gradient-to-r file:from-emerald-600 file:to-emerald-700 file:text-white
+                                    hover:file:from-emerald-700 hover:file:to-emerald-800
+                                    file:cursor-pointer file:transition-all file:duration-200
+                                    file:shadow-md hover:file:shadow-lg"
+                            />
+                        </div>
+
+                        {/* Data Source Toggle */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-semibold text-emerald-800 mb-3">
+                                <Settings2 className="w-4 h-4 text-amber-600" />
+                                Data Source
+                            </label>
+                            <div className="flex bg-stone-100 p-1.5 rounded-xl mb-4 w-fit border border-stone-200">
                                 <button
-                                    onClick={addManualEntry}
-                                    className="w-full py-2 border-2 border-dashed border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
+                                    onClick={() => setUploadMode('csv')}
+                                    className={`px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${uploadMode === 'csv'
+                                        ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg shadow-emerald-500/20'
+                                        : 'text-stone-500 hover:text-emerald-700 hover:bg-white/50'}`}
                                 >
-                                    + Add Another Record
+                                    CSV Upload
+                                </button>
+                                <button
+                                    onClick={() => setUploadMode('manual')}
+                                    className={`px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${uploadMode === 'manual'
+                                        ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg shadow-emerald-500/20'
+                                        : 'text-stone-500 hover:text-emerald-700 hover:bg-white/50'}`}
+                                >
+                                    Manual Entry
                                 </button>
                             </div>
-                        )}
-                    </div>
 
-                    {/* Formatting Options */}
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-4">
-
-                        {/* Name Layout */}
-                        <div>
-                            <h3 className="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">Name Layout</h3>
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">Font Family</label>
-                                    <select
-                                        value={nameFont}
-                                        onChange={(e) => setNameFont(e.target.value)}
-                                        className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
+                            {uploadMode === 'csv' ? (
+                                <div className="p-4 bg-amber-50/50 rounded-xl border border-amber-200/50">
+                                    <label className="block text-xs font-medium text-stone-500 mb-2">Select CSV File</label>
+                                    <input
+                                        type="file"
+                                        accept=".csv"
+                                        onChange={handleFileChange}
+                                        className="block w-full text-sm text-stone-600
+                                            file:mr-4 file:py-2 file:px-4
+                                            file:rounded-lg file:border-0
+                                            file:text-sm file:font-semibold
+                                            file:bg-amber-500 file:text-white
+                                            hover:file:bg-amber-600
+                                            file:cursor-pointer file:transition-all"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {manualEntries.map((entry, index) => (
+                                        <div key={index} className="p-4 bg-gradient-to-br from-amber-50/50 to-emerald-50/30 rounded-xl border border-amber-200/50 relative group">
+                                            <div className="absolute -left-3 -top-3 w-7 h-7 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
+                                                {index + 1}
+                                            </div>
+                                            {manualEntries.length > 1 && (
+                                                <button
+                                                    onClick={() => removeManualEntry(index)}
+                                                    className="absolute top-2 right-2 text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-all"
+                                                    title="Remove Entry"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                            <div className="grid grid-cols-1 gap-3 ml-2">
+                                                <div>
+                                                    <label className="block text-xs font-medium text-emerald-700 mb-1">Name</label>
+                                                    <input
+                                                        type="text"
+                                                        value={entry.name}
+                                                        onChange={(e) => updateManualEntry(index, 'name', e.target.value)}
+                                                        placeholder="John Doe"
+                                                        className="block w-full px-3 py-2.5 bg-white border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none text-stone-800 text-sm transition-all"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-emerald-700 mb-1">Email</label>
+                                                    <input
+                                                        type="email"
+                                                        value={entry.email}
+                                                        onChange={(e) => updateManualEntry(index, 'email', e.target.value)}
+                                                        placeholder="john@example.com"
+                                                        className="block w-full px-3 py-2.5 bg-white border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none text-stone-800 text-sm transition-all"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-emerald-700 mb-1">Rank (Optional)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={entry.rank}
+                                                        onChange={(e) => updateManualEntry(index, 'rank', e.target.value)}
+                                                        placeholder="First Place Winner"
+                                                        className="block w-full px-3 py-2.5 bg-white border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none text-stone-800 text-sm transition-all"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={addManualEntry}
+                                        className="w-full py-3 border-2 border-dashed border-emerald-300 text-emerald-600 rounded-xl hover:bg-emerald-50 hover:border-emerald-400 transition-all duration-200 text-sm font-semibold flex items-center justify-center gap-2"
                                     >
-                                        <option value="Quintessential">Quintessential</option>
-                                        <option value="Meie Script">Meie Script</option>
-                                        <option value="Luxurious Script">Luxurious Script</option>
-                                        <option value="Italianno">Italianno</option>
-                                        <option value="Island Moments">Island Moments</option>
-                                        <option value="Felipa">Felipa</option>
-                                        <option value="Moon Dance">Moon Dance</option>
-                                        <option value="Bilbo Swash Caps">Bilbo Swash Caps</option>
-                                    </select>
+                                        <Plus className="w-4 h-4" />
+                                        Add Another Record
+                                    </button>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">Font Size</label>
-                                    <input
-                                        type="number"
-                                        value={nameSize}
-                                        onChange={(e) => setNameSize(Number(e.target.value))}
-                                        className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
-                                    />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">Color</label>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="color"
-                                            value={nameColor}
-                                            onChange={(e) => setNameColor(e.target.value)}
-                                            className="h-10 w-10 rounded cursor-pointer border-0 p-0"
-                                        />
-                                        <input
-                                            type="text"
-                                            value={nameColor}
-                                            onChange={(e) => setNameColor(e.target.value)}
-                                            className="block w-full px-2 h-10 text-xs font-mono border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black uppercase"
-                                            placeholder="#000000"
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">X-Axis (cm)</label>
-                                    <input
-                                        type="number"
-                                        step="0.1"
-                                        value={nameXPos}
-                                        onChange={(e) => setNameXPos(Number(e.target.value))}
-                                        className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">Y-Axis (cm)</label>
-                                    <input
-                                        type="number"
-                                        step="0.1"
-                                        value={nameYPos}
-                                        onChange={(e) => setNameYPos(Number(e.target.value))}
-                                        className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
-                                    />
-                                </div>
-                            </div>
+                            )}
                         </div>
 
-                        {/* QR Layout */}
-                        <div>
-                            <h3 className="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">QR Code Layout</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">X-Axis (cm)</label>
-                                    <input
-                                        type="number"
-                                        step="0.1"
-                                        value={qrXPos}
-                                        onChange={(e) => setQrXPos(Number(e.target.value))}
-                                        className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">Y-Axis (cm)</label>
-                                    <input
-                                        type="number"
-                                        step="0.1"
-                                        value={qrYPos}
-                                        onChange={(e) => setQrYPos(Number(e.target.value))}
-                                        className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
-                                    />
-                                </div>
-                            </div>
-                        </div>
+                        {/* Formatting Options */}
+                        <div className="p-5 bg-gradient-to-br from-stone-50 to-amber-50/30 rounded-xl border border-amber-200/50 space-y-5">
 
-                        {/* Rank Layout (Conditional) */}
-                        {hasRankData && (
+                            {/* Name Layout */}
                             <div>
-                                <h3 className="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">Rank Box Layout</h3>
+                                <h3 className="flex items-center gap-2 text-sm font-semibold text-emerald-800 mb-3 pb-2 border-b border-amber-200/50">
+                                    <Type className="w-4 h-4 text-amber-600" />
+                                    Name Layout
+                                </h3>
                                 <div className="grid grid-cols-2 gap-4 mb-4">
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-500 mb-1">Font Family</label>
+                                        <label className="block text-xs font-medium text-stone-500 mb-1">Font Family</label>
                                         <select
-                                            value={rankFont}
-                                            onChange={(e) => setRankFont(e.target.value)}
-                                            className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
+                                            value={nameFont}
+                                            onChange={(e) => setNameFont(e.target.value)}
+                                            className="block w-full px-3 h-10 text-sm border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none text-stone-800 bg-white"
                                         >
                                             <option value="Quintessential">Quintessential</option>
                                             <option value="Meie Script">Meie Script</option>
@@ -594,136 +541,266 @@ export default function AdminUploadPage() {
                                             <option value="Felipa">Felipa</option>
                                             <option value="Moon Dance">Moon Dance</option>
                                             <option value="Bilbo Swash Caps">Bilbo Swash Caps</option>
-                                            <option value="Roboto">Roboto</option>
-                                            <option value="Open Sans">Open Sans</option>
-                                            <option value="Lato">Lato</option>
-                                            <option value="Montserrat">Montserrat</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-500 mb-1">Font Size</label>
+                                        <label className="block text-xs font-medium text-stone-500 mb-1">Font Size</label>
                                         <input
                                             type="number"
-                                            value={rankSize}
-                                            onChange={(e) => setRankSize(Number(e.target.value))}
-                                            className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                                            value={nameSize}
+                                            onChange={(e) => setNameSize(Number(e.target.value))}
+                                            className="block w-full px-3 h-10 text-sm border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none text-stone-800"
                                         />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-500 mb-1">Color</label>
+                                        <label className="block text-xs font-medium text-stone-500 mb-1">Color</label>
                                         <div className="flex items-center gap-2">
                                             <input
                                                 type="color"
-                                                value={rankColor}
-                                                onChange={(e) => setRankColor(e.target.value)}
+                                                value={nameColor}
+                                                onChange={(e) => setNameColor(e.target.value)}
                                                 className="h-10 w-10 rounded cursor-pointer border-0 p-0"
                                             />
                                             <input
                                                 type="text"
-                                                value={rankColor}
-                                                onChange={(e) => setRankColor(e.target.value)}
-                                                className="block w-full px-2 h-10 text-xs font-mono border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black uppercase"
+                                                value={nameColor}
+                                                onChange={(e) => setNameColor(e.target.value)}
+                                                className="block w-full px-2 h-10 text-xs font-mono border border-stone-200 rounded focus:ring-2 focus:ring-amber-400 outline-none text-stone-800 uppercase"
                                                 placeholder="#000000"
                                             />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-500 mb-1">X-Axis (cm)</label>
+                                        <label className="block text-xs font-medium text-stone-500 mb-1">X-Axis (cm)</label>
                                         <input
                                             type="number"
                                             step="0.1"
-                                            value={rankXPos}
-                                            onChange={(e) => setRankXPos(Number(e.target.value))}
-                                            className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                                            value={nameXPos}
+                                            onChange={(e) => setNameXPos(Number(e.target.value))}
+                                            className="block w-full px-2 h-10 text-sm border border-stone-200 rounded focus:ring-2 focus:ring-amber-400 outline-none text-stone-800"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-500 mb-1">Y-Axis (cm)</label>
+                                        <label className="block text-xs font-medium text-stone-500 mb-1">Y-Axis (cm)</label>
                                         <input
                                             type="number"
                                             step="0.1"
-                                            value={rankYPos}
-                                            onChange={(e) => setRankYPos(Number(e.target.value))}
-                                            className="block w-full px-2 h-10 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-black"
+                                            value={nameYPos}
+                                            onChange={(e) => setNameYPos(Number(e.target.value))}
+                                            className="block w-full px-2 h-10 text-sm border border-stone-200 rounded focus:ring-2 focus:ring-amber-400 outline-none text-stone-800"
                                         />
                                     </div>
                                 </div>
                             </div>
-                        )}
 
-                    </div>
-                </div>
+                            {/* QR Layout */}
+                            <div>
+                                <h3 className="text-sm font-semibold text-emerald-800 mb-3 border-b pb-1">QR Code Layout</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-stone-500 mb-1">X-Axis (cm)</label>
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            value={qrXPos}
+                                            onChange={(e) => setQrXPos(Number(e.target.value))}
+                                            className="block w-full px-2 h-10 text-sm border border-stone-200 rounded focus:ring-2 focus:ring-amber-400 outline-none text-stone-800"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-stone-500 mb-1">Y-Axis (cm)</label>
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            value={qrYPos}
+                                            onChange={(e) => setQrYPos(Number(e.target.value))}
+                                            className="block w-full px-2 h-10 text-sm border border-stone-200 rounded focus:ring-2 focus:ring-amber-400 outline-none text-stone-800"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
 
-                {/* Email Customization */}
-                <div className="mb-6">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Email Customization</h3>
-                    <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Subject</label>
-                            <input
-                                type="text"
-                                value={emailSubject}
-                                onChange={(e) => setEmailSubject(e.target.value)}
-                                className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black text-sm"
-                                placeholder="Your Certificate: {title}"
-                            />
+                            {/* Rank Layout (Conditional) */}
+                            {hasRankData && (
+                                <div>
+                                    <h3 className="text-sm font-semibold text-emerald-800 mb-3 border-b pb-1">Rank Box Layout</h3>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-stone-500 mb-1">Font Family</label>
+                                            <select
+                                                value={rankFont}
+                                                onChange={(e) => setRankFont(e.target.value)}
+                                                className="block w-full px-2 h-10 text-sm border border-stone-200 rounded focus:ring-2 focus:ring-amber-400 outline-none text-stone-800 bg-white"
+                                            >
+                                                <option value="Quintessential">Quintessential</option>
+                                                <option value="Meie Script">Meie Script</option>
+                                                <option value="Luxurious Script">Luxurious Script</option>
+                                                <option value="Italianno">Italianno</option>
+                                                <option value="Island Moments">Island Moments</option>
+                                                <option value="Felipa">Felipa</option>
+                                                <option value="Moon Dance">Moon Dance</option>
+                                                <option value="Bilbo Swash Caps">Bilbo Swash Caps</option>
+                                                <option value="Roboto">Roboto</option>
+                                                <option value="Open Sans">Open Sans</option>
+                                                <option value="Lato">Lato</option>
+                                                <option value="Montserrat">Montserrat</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-stone-500 mb-1">Font Size</label>
+                                            <input
+                                                type="number"
+                                                value={rankSize}
+                                                onChange={(e) => setRankSize(Number(e.target.value))}
+                                                className="block w-full px-2 h-10 text-sm border border-stone-200 rounded focus:ring-2 focus:ring-amber-400 outline-none text-stone-800"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-stone-500 mb-1">Color</label>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="color"
+                                                    value={rankColor}
+                                                    onChange={(e) => setRankColor(e.target.value)}
+                                                    className="h-10 w-10 rounded cursor-pointer border-0 p-0"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={rankColor}
+                                                    onChange={(e) => setRankColor(e.target.value)}
+                                                    className="block w-full px-2 h-10 text-xs font-mono border border-stone-200 rounded focus:ring-2 focus:ring-amber-400 outline-none text-stone-800 uppercase"
+                                                    placeholder="#000000"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-stone-500 mb-1">X-Axis (cm)</label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                value={rankXPos}
+                                                onChange={(e) => setRankXPos(Number(e.target.value))}
+                                                className="block w-full px-2 h-10 text-sm border border-stone-200 rounded focus:ring-2 focus:ring-amber-400 outline-none text-stone-800"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-stone-500 mb-1">Y-Axis (cm)</label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                value={rankYPos}
+                                                onChange={(e) => setRankYPos(Number(e.target.value))}
+                                                className="block w-full px-2 h-10 text-sm border border-stone-200 rounded focus:ring-2 focus:ring-amber-400 outline-none text-stone-800"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Body (HTML supported)</label>
-                            <textarea
-                                value={emailBody}
-                                onChange={(e) => setEmailBody(e.target.value)}
-                                rows={4}
-                                className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black text-sm font-mono"
-                                placeholder="Dear {name}..."
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                                Available placeholders: {'{name}'}, {'{title}'}, {'{verify_url}'}. HTML tags allowed (e.g. &lt;b&gt;, &lt;br&gt;).
-                            </p>
+                    </div>
+
+                    {/* Email Customization */}
+                    <div className="mb-6">
+                        <h3 className="flex items-center gap-2 text-sm font-semibold text-emerald-800 mb-3">
+                            <Mail className="w-4 h-4 text-amber-600" />
+                            Email Customization
+                        </h3>
+                        <div className="space-y-4 p-4 bg-stone-50 rounded-xl border border-amber-200/50">
+                            <div>
+                                <label className="block text-xs font-medium text-stone-500 mb-1">Subject</label>
+                                <input
+                                    type="text"
+                                    value={emailSubject}
+                                    onChange={(e) => setEmailSubject(e.target.value)}
+                                    className="block w-full px-4 py-2 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none text-stone-800 text-sm"
+                                    placeholder="Your Certificate: {title}"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-stone-500 mb-1">Body (HTML supported)</label>
+                                <textarea
+                                    value={emailBody}
+                                    onChange={(e) => setEmailBody(e.target.value)}
+                                    rows={4}
+                                    className="block w-full px-4 py-2 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none text-stone-800 text-sm font-mono"
+                                    placeholder="Dear {name}..."
+                                />
+                                <p className="text-xs text-stone-500 mt-1">
+                                    Available placeholders: {'{name}'}, {'{title}'}, {'{verify_url}'}. HTML tags allowed (e.g. &lt;b&gt;, &lt;br&gt;).
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
 
-                <button
-                    onClick={handleUpload}
-                    disabled={uploading || !issueDate || !certificateTitle || !templateFile || (uploadMode === 'csv' ? !file : manualEntries.filter(e => e.name && e.email).length === 0)}
-                    className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]
+                    <button
+                        onClick={handleUpload}
+                        disabled={uploading || !issueDate || !certificateTitle || !templateFile || (uploadMode === 'csv' ? !file : manualEntries.filter(e => e.name && e.email).length === 0)}
+                        className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]
                     ${uploading || !issueDate || !certificateTitle || !templateFile || (uploadMode === 'csv' ? !file : manualEntries.filter(e => e.name && e.email).length === 0)
-                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-blue-500/30'
-                        }`}
-                >
-                    {uploading ? (
-                        <span className="flex items-center justify-center gap-2">
-                            <Loader2 className="w-6 h-6 animate-spin" />
-                            Processing...
+                                ? 'bg-stone-300 text-stone-500 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-amber-500 text-white hover:shadow-emerald-500/30 hover:shadow-xl'
+                            }`}
+                    >
+                        {uploading ? (
+                            <span className="flex items-center justify-center gap-2">
+                                <Loader2 className="w-6 h-6 animate-spin" />
+                                Processing...
+                            </span>
+                        ) : (
+                            <span className="flex items-center justify-center gap-2">
+                                <Upload className="w-6 h-6" />
+                                Generate and Send Certificates
+                            </span>
+                        )}
+                    </button>
+                </div>
+
+                {/* Progress Bar */}
+                {uploading && (
+                    <div className="mt-6">
+                        <div className="w-full bg-stone-200 rounded-full h-3 overflow-hidden">
+                            <div
+                                className="h-full bg-gradient-to-r from-emerald-500 via-amber-400 to-emerald-500 rounded-full transition-all duration-500 ease-out"
+                                style={{ width: `${progress}%` }}
+                            ></div>
+                        </div>
+                        <div className="flex justify-between mt-2">
+                            <span className="text-xs text-stone-500">Processing certificates...</span>
+                            <span className="text-xs font-semibold text-emerald-600">{progress}%</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Logs Terminal */}
+                <div className="mt-6 bg-gradient-to-br from-emerald-900 to-emerald-950 rounded-xl p-4 h-64 overflow-y-auto font-mono text-xs border border-emerald-800">
+                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-emerald-800/50">
+                        <div className="flex gap-1.5">
+                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                            <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                        </div>
+                        <span className="text-emerald-400/60 text-xs">output.log</span>
+                    </div>
+                    {logs.length === 0 ? (
+                        <span className="text-emerald-500/50 flex items-center gap-2">
+                            <Sparkles className="w-3 h-3" />
+                            Waiting for activity...
                         </span>
                     ) : (
-                        <span className="flex items-center justify-center gap-2">
-                            <Upload className="w-6 h-6" />
-                            Generate and Send Certificates
-                        </span>
+                        logs.map((log, i) => (
+                            <div key={i} className="text-amber-300 hover:text-amber-200 transition-colors">
+                                <span className="text-emerald-500 mr-2">›</span>
+                                {log}
+                            </div>
+                        ))
                     )}
-                </button>
-            </div>
-            {uploading && (
-                <div className="mb-6">
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
-                    </div>
-                    <p className="text-right text-xs text-gray-500 mt-1">{progress}%</p>
                 </div>
-            )}
-
-            <div className="bg-gray-900 rounded-lg p-4 h-64 overflow-y-auto font-mono text-xs text-green-400">
-                {logs.length === 0 ? (
-                    <span className="text-gray-500">Logs will appear here...</span>
-                ) : (
-                    logs.map((log, i) => <div key={i}>{log}</div>)
-                )}
             </div>
         </div>
     );
