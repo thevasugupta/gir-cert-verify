@@ -23,6 +23,7 @@ export interface CertificateData {
   rank_color?: string;
   rank_x_pos?: number;
   rank_y_pos?: number;
+  rank?: string;
 }
 
 export interface Certificate extends CertificateData {
